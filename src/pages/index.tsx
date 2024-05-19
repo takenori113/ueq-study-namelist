@@ -1,8 +1,6 @@
 import AddPersonFormPart from "@/component/AddPersonFormPart";
 import NameListPart from "@/component/NameListPart";
-
 import SignOutButton from "@/component/SignOutButton";
-
 import { Person } from "@/types";
 import React from "react";
 import { firestore, storage, auth, signOut } from "@/firebase";
@@ -16,22 +14,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-
-// import { Person } from "@/component/person";
-
-// const people: Person[] = [
-//   {
-//     name: "Kenneth",
-//     gender: "男",
-//     birthDate: "1992年1月13日",
-//     note: "力持ち",
-//     photoName: "example.png",
-//   },
-// new Person("Kenneth", "男", "1992年1月13日", "力持ち", "example.png"),
-// new Person("Ellie", "女", "1994年1月13日", "ゴシップ好き", "example.png"),
-// ];
-
-// console.log(people);
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const LoginUserPart = () => {
   return (
@@ -43,11 +26,49 @@ const LoginUserPart = () => {
 };
 
 export default function Home() {
+  const [userInputData, setUserInputData] = React.useState<Person>();
   const [people, setPeople] = React.useState<Person[]>([]);
-
   React.useEffect(() => {
     fetchPeople();
   }, []);
+
+  const handleAdd = async (data: Person) => {
+    await addDoc(collection(firestore, "people"), data);
+  };
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    console.log(e.target.name.value);
+    console.log("Form submitted");
+    const data = await createData(e);
+    console.log("Data to add:", data); // デバッグ用ログ
+    await handleAdd(data);
+    fetchPeople();
+  };
+
+  const createData = async (e: any) => {
+    let fileName = null;
+    const file = e.target.photo.files[0];
+    if (file) {
+      fileName = await uploadPhoto(file);
+    }
+    const data = {
+      name: e.target.name.value,
+      gender: e.target.gender.value,
+      birth_date: e.target.birth_date.value,
+      note: e.target.note.value,
+      photo: fileName,
+    };
+    return data;
+  };
+  const uploadPhoto = async (file: any) => {
+    const ext = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${ext}`;
+    const filePath = `images/${fileName}`;
+    const fileRef = ref(storage, filePath);
+    await uploadBytes(fileRef, file);
+    return fileName;
+  };
 
   const fetchPeople = async () => {
     try {
@@ -56,13 +77,16 @@ export default function Home() {
         // where("uid", "==", "lxHeXZmupnhcNU6bKU10uAoXl7U2")
       );
       const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map((x) => x.data() as Person);
+      const data = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Person),
+      }));
       setPeople(data);
     } catch (e) {
       console.log(e);
     }
   };
-  console.log(people);
+
   return (
     <main>
       <LoginUserPart />
@@ -72,7 +96,7 @@ export default function Home() {
           遠くの親戚などあまり会わない人を登録すると忘れないから便利だぞ
         </div>
       </div>
-      <AddPersonFormPart />
+      <AddPersonFormPart onClickAdd={handleSubmit} />
       <NameListPart people={people} />
     </main>
   );

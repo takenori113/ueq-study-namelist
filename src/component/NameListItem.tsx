@@ -7,7 +7,7 @@ type Props = {
 
 const NameListItem = ({ person, onClickDelete }: Props) => {
   return (
-    <li className="border">
+    <li className="border-8 border-color: rgb(0 0 0);">
       <img src={person.photoName} alt="" />
       <div>名前： {person.name}</div>
       <div>性別： {person.gender}</div>

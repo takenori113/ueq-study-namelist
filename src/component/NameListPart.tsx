@@ -13,7 +13,7 @@ const NameListPart = ({ people }: Props) => {
         <ul>
           {people.map((x) => (
             <NameListItem
-              key={x.name}
+              key={x.id}
               person={x}
               onClickDelete={() => console.log("delete")}
             />
