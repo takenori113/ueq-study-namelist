@@ -1,7 +1,7 @@
 import PersonFormPart from "@/components/PersonFormPart";
 import NameListItem from "@/components/NameListItem";
 import SignOutButton from "@/components/SignOutButton";
-import { Person } from "@/types";
+import { Person, User } from "@/types";
 import React from "react";
 import { firestore, storage, auth, signOut } from "@/firebase";
 import {
@@ -16,21 +16,23 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const LoginUserPart = () => {
-  return (
-    <div>
-      <p>ログインユーザー</p>
-      <SignOutButton />
-    </div>
-  );
-};
-
 export default function Home() {
   const [editPersonId, setEditPersonId] = React.useState("");
   const [people, setPeople] = React.useState<Person[]>([]);
-
+  const [user, setUser] = React.useState<User | null | undefined>();
   React.useEffect(() => {
     fetchPeople();
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        location.href = "/login";
+      } else {
+        console.log(user);
+        const appUser = user as User;
+        console.log(appUser);
+        setUser(appUser);
+        // signOutButton.addEventListener("click", () => signOut(auth));
+      }
+    });
   }, []);
 
   const handleAdd = async (data: Person) => {
@@ -76,6 +78,7 @@ export default function Home() {
       birthDate: target.birth_date?.value,
       note: target.note?.value,
       photo: fileName,
+      uid: user?.uid,
     };
     console.log(data);
 
@@ -94,8 +97,8 @@ export default function Home() {
   const fetchPeople = async () => {
     try {
       const q = query(
-        collection(firestore, "people")
-        // where("uid", "==", "lxHeXZmupnhcNU6bKU10uAoXl7U2")
+        collection(firestore, "people"),
+        where("uid", "==", user?.uid)
       );
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map((doc) => {
@@ -149,7 +152,10 @@ export default function Home() {
 
   return (
     <main className="">
-      <LoginUserPart />
+      <div>
+        <p>ログインユーザー{user?.email}</p>
+        <SignOutButton />
+      </div>
       <div>
         <h1 className="text-5xl font-bold underline font-mono">人物名鑑</h1>
         <div>
@@ -172,6 +178,9 @@ export default function Home() {
               />
             ))}
           </ul>
+        </div>
+        <div>
+          <a href={"/login"}>ログイン画面へ</a>
         </div>
       </div>
     </main>

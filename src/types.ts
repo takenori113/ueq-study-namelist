@@ -6,3 +6,8 @@ export type Person = {
   note?: string;
   photo?: string;
 };
+
+export type User = {
+  uid: string;
+  email: string;
+};
