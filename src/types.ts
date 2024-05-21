@@ -4,5 +4,5 @@ export type Person = {
   gender?: string;
   birthDate?: string;
   note?: string;
-  photoName?: string;
+  photo?: string;
 };
