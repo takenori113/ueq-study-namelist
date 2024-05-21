@@ -1,6 +1,5 @@
 import PersonFormPart from "@/components/PersonFormPart";
 import NameListItem from "@/components/NameListItem";
-import SignOutButton from "@/components/SignOutButton";
 import { Person, User } from "@/types";
 import React from "react";
 import { firestore, storage, auth, signOut } from "@/firebase";
@@ -21,7 +20,6 @@ export default function Home() {
   const [people, setPeople] = React.useState<Person[]>([]);
   const [user, setUser] = React.useState<User | null | undefined>();
   React.useEffect(() => {
-    fetchPeople();
     auth.onAuthStateChanged((user) => {
       if (!user) {
         location.href = "/login";
@@ -30,10 +28,11 @@ export default function Home() {
         const appUser = user as User;
         console.log(appUser);
         setUser(appUser);
-        // signOutButton.addEventListener("click", () => signOut(auth));
+        fetchPeople();
       }
     });
   }, []);
+
 
   const handleAdd = async (data: Person) => {
     await addDoc(collection(firestore, "people"), data);
@@ -42,7 +41,6 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = await createData(e);
-    console.log("Data to add:", data); // デバッグ用ログ
     await handleAdd(data);
     fetchPeople();
   };
@@ -66,6 +64,7 @@ export default function Home() {
   };
 
   const createData = async (e: React.FormEvent<HTMLFormElement>) => {
+    const user = await auth.currentUser;
     let fileName = "";
     const target = e.target as unknown as Target;
     const file = target.photo?.files[0];
@@ -106,7 +105,6 @@ export default function Home() {
         return {
           id: doc.id,
           ...data,
-          // photoName: url,
         };
       });
       const fixedData = await Promise.all(
@@ -154,7 +152,7 @@ export default function Home() {
     <main className="">
       <div>
         <p>ログインユーザー{user?.email}</p>
-        <SignOutButton />
+        <button onClick={() => signOut(auth)}>サインアウト</button>
       </div>
       <div>
         <h1 className="text-5xl font-bold underline font-mono">人物名鑑</h1>
