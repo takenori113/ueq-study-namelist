@@ -1,8 +1,4 @@
-import PersonFormPart from "@/components/PersonFormPart";
-import NameListItem from "@/components/NameListItem";
-import { Person, User } from "@/types";
 import React from "react";
-import { firestore, storage, auth, signOut } from "@/firebase";
 import {
   collection,
   addDoc,
@@ -13,26 +9,48 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes } from "firebase/storage";
+
+import PersonFormPart from "@/components/PersonFormPart";
+import NameListItem from "@/components/NameListItem";
+
+import { Person, User } from "@/types";
+import { firestore, storage, auth, signOut } from "@/firebase";
+
+type Target = {
+  name: {
+    value: string;
+  };
+  gender?: {
+    value: string;
+  };
+  birth_date?: {
+    value: string;
+  };
+  note?: {
+    value: string;
+  };
+  photo?: {
+    files: File[];
+  };
+};
 
 export default function Home() {
   const [editPersonId, setEditPersonId] = React.useState("");
   const [people, setPeople] = React.useState<Person[]>([]);
   const [user, setUser] = React.useState<User | null | undefined>();
+
   React.useEffect(() => {
     auth.onAuthStateChanged((user) => {
       if (!user) {
         location.href = "/login";
       } else {
-        console.log(user);
         const appUser = user as User;
-        console.log(appUser);
         setUser(appUser);
         fetchPeople();
       }
     });
   }, []);
-
 
   const handleAdd = async (data: Person) => {
     await addDoc(collection(firestore, "people"), data);
@@ -45,31 +63,17 @@ export default function Home() {
     fetchPeople();
   };
 
-  type Target = {
-    name: {
-      value: string;
-    };
-    gender?: {
-      value: string;
-    };
-    birth_date?: {
-      value: string;
-    };
-    note?: {
-      value: string;
-    };
-    photo?: {
-      files: File[];
-    };
-  };
-
   const createData = async (e: React.FormEvent<HTMLFormElement>) => {
-    const user = await auth.currentUser;
+    const user = auth.currentUser;
     let fileName = "";
     const target = e.target as unknown as Target;
     const file = target.photo?.files[0];
     if (file) {
-      fileName = await uploadPhoto(file);
+      const ext = file.name.split(".").pop();
+      fileName = `${Date.now()}.${ext}`;
+      const filePath = `images/${fileName}`;
+      const fileRef = ref(storage, filePath);
+      await uploadBytes(fileRef, file);
     }
     const data = {
       name: target.name.value,
@@ -79,21 +83,11 @@ export default function Home() {
       photo: fileName,
       uid: user?.uid,
     };
-    console.log(data);
-
     return data;
   };
 
-  const uploadPhoto = async (file: File) => {
-    const ext = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${ext}`;
-    const filePath = `images/${fileName}`;
-    const fileRef = ref(storage, filePath);
-    await uploadBytes(fileRef, file);
-    return fileName;
-  };
-
   const fetchPeople = async () => {
+    const user = auth.currentUser;
     try {
       const q = query(
         collection(firestore, "people"),
@@ -107,34 +101,13 @@ export default function Home() {
           ...data,
         };
       });
-      const fixedData = await Promise.all(
-        data.map(async (x) => {
-          if (x.photo) {
-            const filePath = `images/${x.photo}`;
-            const fileRef = ref(storage, filePath);
-            console.log(filePath);
-            const url = await getDownloadURL(fileRef);
-            return {
-              ...x,
-              photo: url,
-            };
-          } else {
-            return {
-              ...x,
-              photo:
-                "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh0gd1AdwbKPHvU5RaaWQLxAkmrwofr7cMQydo07eOCJHB0N9tH1VaEo1lhuJDWaPzM_HKMzVyIqPpHhoov-D09v2TkcPy61BrOIaiENhdCIP4LTCkZSeI1EbQ9xBZ5jcg7sFVIJvTb2MwQ/s1600/no_image_tate.jpg",
-            };
-          }
-        })
-      );
-      setPeople(fixedData);
+      setPeople(data);
     } catch (e) {
       console.log(e);
     }
   };
 
   const handleDelete = async (personId: string) => {
-    console.log(personId);
     await deleteDoc(doc(firestore, "people", personId));
     await fetchPeople();
   };
