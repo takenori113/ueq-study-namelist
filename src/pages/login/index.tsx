@@ -6,7 +6,6 @@ import {
 } from "@/firebase";
 
 export const LoginPage = () => {
-
   const handleSubmitSignIn = async (e: any) => {
     e.preventDefault();
     const email = e.target["user-email"].value;
@@ -14,7 +13,7 @@ export const LoginPage = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       location.href = "/";
-    } catch (error:any) {
+    } catch (error: any) {
       const errorMessage = error.message;
       alert("Error: " + errorMessage);
     }
@@ -27,7 +26,7 @@ export const LoginPage = () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       location.href = "/";
-    } catch (error:any) {
+    } catch (error: any) {
       const errorMessage = error.message;
       alert("Error: " + errorMessage);
     }

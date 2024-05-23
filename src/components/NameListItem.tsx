@@ -1,7 +1,8 @@
 import { Person } from "@/types";
-// import EditPersonForm from "./EditPersonForm";
 import PersonFormPart from "./PersonFormPart";
-import PersonPhoto from "./PersonPhoto";
+import { ref, getDownloadURL } from "firebase/storage";
+import { storage } from "@/firebase";
+import { useEffect, useState } from "react";
 
 type Props = {
   person: Person;
@@ -18,10 +19,26 @@ const NameListItem = ({
   onClickEdit,
   isEditing,
 }: Props) => {
+  const [photoUrl, setPhotoUrl] = useState("");
+
+  useEffect(() => {
+    const getPhotoUrl = async () => {
+      if (person.photo) {
+        const filePath = `images/${person.photo}`;
+        const fileRef = ref(storage, filePath);
+        const url = await getDownloadURL(fileRef);
+        setPhotoUrl(url);
+      } else {
+        setPhotoUrl("/no_image_tate.jpg");
+      }
+    };
+    getPhotoUrl();
+  }, [person.photo]);
+
   if (!isEditing) {
     return (
       <li id={person.id} className="border-2">
-        <PersonPhoto person={person} />
+        <img src={photoUrl} alt="photo-url" width={200} height={200} />;
         <div>名前： {person.name}</div>
         <div>性別： {person.gender}</div>
         <div>誕生日： {person.birthDate}</div>
